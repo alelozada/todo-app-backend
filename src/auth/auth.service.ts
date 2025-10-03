@@ -13,6 +13,13 @@ export class AuthService {
     ) {}
 
     async register(registerDto: RegisterDto) {
+
+        console.log('Reguster DTI received: ', registerDto);
+
+        if(!registerDto || !registerDto.email) {
+            throw new ConflictException('Datos de registro inválidos');
+        }
+
         const existingUser = await this.usersService.findByEmail(registerDto.email);
         if (existingUser) {
             throw new ConflictException('El usuario ya existe');
@@ -29,6 +36,13 @@ export class AuthService {
     }
 
     async login(loginDto: LoginDto) {
+
+        console.log('Login DTO received:', loginDto);
+
+        if (!loginDto || !loginDto.email) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+
         const user = await this.usersService.findByEmail(loginDto.email);
         if (!user) {
             throw new UnauthorizedException('Credenciales inválidas');
@@ -44,7 +58,6 @@ export class AuthService {
 
     private async generateToken(userId: number, email: string) {
         const payload = { sub: userId, email: email };
-
         const token = await this.jwtService.signAsync(payload);
 
         return {
