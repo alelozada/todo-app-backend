@@ -13,14 +13,46 @@ export class AuthService {
     ) {}
 
     async register(registerDto: RegisterDto) {
-        
+        const existingUser = await this.usersService.findByEmail(registerDto.email);
+        if (existingUser) {
+            throw new ConflictException('El usuario ya existe');
+        }
+
+        const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+
+        const user = await this.usersService.create({
+            ...registerDto,
+            password: hashedPassword,
+        });
+
+        return this.generateToken(user.id, user.email);
     }
 
     async login(loginDto: LoginDto) {
-        
+        const user = await this.usersService.findByEmail(loginDto.email);
+        if (!user) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+
+        const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+
+        return this.generateToken(user.id, user.email);
     }
 
     private async generateToken(userId: number, email: string) {
-        
+        const payload = { sub: userId, email: email };
+
+        const token = await this.jwtService.signAsync(payload);
+
+        return {
+            access_token: token,
+            user: {
+                id: userId,
+                email: email,
+            },
+        };
     }
 }
